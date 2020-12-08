@@ -3,7 +3,7 @@
 This program (once you have finished it) implements the Breakout game.
 """
 
-from pgl import GWindow, GOval, GRect, GState, GLabel
+from pgl import GWindow, GOval, GRect, GState, GLabel, GCompound
 import random
 
 # Constants
@@ -23,6 +23,7 @@ TIME_STEP = 1                  # Time step in milliseconds
 INITIAL_Y_VELOCITY = 10.0          # Starting y velocity downward
 MIN_X_VELOCITY = 5.0              # Minimum random x velocity
 MAX_X_VELOCITY = 15.0              # Maximum random x velocity
+times_played_counter = 0
 
 # Derived constants
 
@@ -34,7 +35,8 @@ PADDLE_Y = (1 - BOTTOM_FRACTION) * GWINDOW_HEIGHT - PADDLE_HEIGHT
 BALL_SIZE = BRICK_WIDTH / BRICK_TO_BALL_RATIO
 START_X = 2
 START_Y = 75
-
+BOX_SIZE = 30
+blocks_broken_num = 0
 # Function: breakout
 
 def breakout():
@@ -70,8 +72,7 @@ def breakout():
        
     bricks()
 #-------------------------------------------------------------------------------
-        
-
+    
     #CODE FOR THE PADDLE
 
     def paddle():
@@ -100,7 +101,7 @@ def breakout():
     def ball_movement():
         
         gs.vx = random.uniform(MIN_X_VELOCITY, MAX_X_VELOCITY)
-        if random.uniform(0, 1) < 0.5:
+        if random.randint(0, 15) < 0.5:
             gs.vx = -gs.vx
 
         gs.vy = INITIAL_Y_VELOCITY
@@ -131,9 +132,12 @@ def breakout():
             
     def colliding_objects():
         left_upper = gw.get_element_at(gs.ball.get_x(), gs.ball.get_y())
-        left_lower = gw.get_element_at(gs.ball.get_x(), gs.ball.get_y() + BALL_SIZE)
-        right_upper = gw.get_element_at(gs.ball.get_x() + BALL_SIZE, gs.ball.get_y())
-        right_lower = gw.get_element_at(gs.ball.get_x() + BALL_SIZE, gs.ball.get_y() + \
+        left_lower = gw.get_element_at(gs.ball.get_x(),
+                                       gs.ball.get_y() + BALL_SIZE)
+        right_upper = gw.get_element_at(gs.ball.get_x() + BALL_SIZE,
+                                        gs.ball.get_y())
+        right_lower = gw.get_element_at(gs.ball.get_x() + BALL_SIZE,
+                                        gs.ball.get_y() +
                                         BALL_SIZE)
 
         if left_upper != None:
@@ -151,13 +155,41 @@ def breakout():
     def GameOverLabel():
         gameover = GLabel("GAME OVER!", GWINDOW_WIDTH / 3 + 5, GWINDOW_HEIGHT / 2)
         gameover.set_color("Red")
+        click_here = GLabel("Click HERE to play again!", 5, 20)
+        click_here.set_color("Green")
+        gw.add(click_here)
         gw.add(gameover)
+        gw.moving = False
+        def click_action(p):
+            px = p.get_x()
+            py = p.get_y()
+            label_x = gameover.get_x()
+            label_y = gameover.get_y()
+            label_width = gameover.get_width()
+            label_height = gameover.get_height()
+
+            if px <= label_x and px >= label_x - label_x:
+                if py <= label_y and py >= label_y - label_y:
+                    breakout()
+
+        gw.add_event_listener('click', click_action)
+
+    def block_counter():
+        comp = GCompound()
+        block_label = GRect(gw.get_width() - 50, 10, BOX_SIZE, BOX_SIZE)
+        comp.add(block_label)
+        gw.add(comp)
+
+    block_counter()
+                
+            
         
 
 #DEFINING EACH TIME STEP!
     def step():
 
         global N_BALLS
+        blocks_counter_num = 0
         if gs.moving:
             collider = colliding_objects()
 
@@ -175,12 +207,17 @@ def breakout():
                     N_BALLS -= 1
                 elif N_BALLS == 1:
                     GameOverLabel()
+               
             
             if collider != None:
                 if collider == gs.paddle:
                     gs.vy *= -1
                 else:
+                    #I am attempting to add a counter to my program, where everytime a block breaks it counts the blocks broken at the top right
                     gw.remove(collider)
+                    blocks_counter_num += 1
+                    blocks_broken_counter = GLabel(str(blocks_broken_num), gw.get_width()- 30, gw.get_height + 30)
+                    gw.add(blocks_broken_counter)
                     gs.vy *= -1
 
             gs.ball.set_bounds(gs.ball.get_x() + gs.vx, gs.ball.get_y() + gs.vy, BALL_SIZE, BALL_SIZE)
